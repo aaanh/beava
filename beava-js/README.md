@@ -9,7 +9,7 @@
 | `packages/beava-node` | `@beava/node` | `createBeavaClient`, Zod wire schemas, Vitest unit + optional HTTP integration tests |
 | `packages/beava-client` | `@beava/client` | Re-exports `@beava/node` for app bundles that want a browser-scoped package name |
 
-Workspace members are defined in **`pnpm-workspace.yaml`** (currently `packages/beava-node`; add `packages/beava-client` when that package lands). Library packages extend **`tsconfig.node-library.json`** at this directory root (no separate TypeScript config package).
+Workspace members are defined in **`pnpm-workspace.yaml`** (`packages/beava-node`, `packages/beava-client`). Library packages extend **`tsconfig.node-library.json`** at this directory root (no separate TypeScript config package).
 
 ## Prerequisites
 
