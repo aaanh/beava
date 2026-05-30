@@ -32,6 +32,7 @@ export async function spawnBeavaServer(): Promise<BeavaTestServer> {
       env: {
         ...process.env,
         BEAVA_LISTEN_ADDR: "127.0.0.1:0",
+        BEAVA_ADMIN_ADDR: "127.0.0.1:0",
         BEAVA_TCP_PORT: "0",
         BEAVA_WAL_DIR: walDir,
         BEAVA_SNAPSHOT_DIR: snapDir,
