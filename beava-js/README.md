@@ -1,13 +1,106 @@
 # beava-js
 
-[Turborepo](https://turbo.build/repo) monorepo for the official Beava TypeScript packages: **`@beava/node`** (server-side HTTP client) and **`@beava/client`** (browser entry that re-exports the same fetch-based API).
+[Turborepo](https://turbo.build/repo) workspace for the official Beava TypeScript HTTP clients.
+
+- **`@beava/node`**: Node.js service and script client.
+- **`@beava/client`**: browser-oriented package name that re-exports the same fetch-based API.
+
+Both packages expose `createBeavaClient`, typed request and response shapes, Beava wire error classes, and Zod schemas for the HTTP data plane.
+
+## Install
+
+```sh
+npm install @beava/node
+# or, in browser bundles:
+npm install @beava/client
+```
+
+Run a local server first:
+
+```sh
+beava
+# default HTTP URL: http://127.0.0.1:8080
+```
+
+## Example
+
+```ts
+import { BeavaError, createBeavaClient } from "@beava/node";
+
+const beava = createBeavaClient({
+  baseUrl: "http://127.0.0.1:8080",
+  timeoutSeconds: 10,
+});
+
+await beava.ping();
+
+await beava.register({
+  nodes: [
+    {
+      kind: "event",
+      name: "Purchase",
+      schema: {
+        fields: {
+          user_id: "str",
+          amount: "f64",
+        },
+        optional_fields: [],
+      },
+      dedupe_key: null,
+      dedupe_window_ms: null,
+      keep_events_for_ms: null,
+    },
+  ],
+});
+
+await beava.push({
+  event: "Purchase",
+  data: {
+    user_id: "alice",
+    amount: 42.5,
+  },
+});
+```
+
+Read from a feature table that your deployed Beava pipeline has registered:
+
+```ts
+try {
+  const row = await beava.get({ table: "UserSpend", key: "alice" });
+  console.log(row);
+} catch (error) {
+  if (error instanceof BeavaError) {
+    console.error(error.status, error.code, error.message);
+  }
+}
+```
+
+A runnable Node example lives at `examples/node-basic.mjs`. After `pnpm install` and `pnpm run build`, run it with:
+
+```sh
+BEAVA_URL=http://127.0.0.1:8080 node examples/node-basic.mjs
+```
+
+## API Surface
+
+| Method                                | Wire route        | Notes                                  |
+| ------------------------------------- | ----------------- | -------------------------------------- |
+| `ping()`                              | `POST /ping`      | Liveness and registry version.         |
+| `register({ nodes, force, dry_run })` | `POST /register`  | Registers event and table descriptors. |
+| `push({ event, data })`               | `POST /push`      | Sends one event payload.               |
+| `get({ table, key, features })`       | `POST /get`       | Reads one feature row.                 |
+| `batchGet({ requests })`              | `POST /batch_get` | Reads many feature rows.               |
+| `reset()`                             | `POST /reset`     | Test-mode only state reset.            |
+
+Server error envelopes throw `BeavaError`. Malformed success responses throw `BeavaResponseValidationError`, which usually means the client and server versions disagree about the wire shape.
 
 ## Layout
 
-| Path | Package | Role |
-|------|---------|------|
-| `packages/beava-node` | `@beava/node` | `createBeavaClient`, Zod wire schemas, Vitest unit + optional HTTP integration tests |
-| `packages/beava-client` | `@beava/client` | Re-exports `@beava/node` for app bundles that want a browser-scoped package name |
+| Path                      | Package         | Role                                                                                 |
+| ------------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| `packages/beava-node`     | `@beava/node`   | `createBeavaClient`, Zod wire schemas, Vitest unit + optional HTTP integration tests |
+| `packages/beava-client`   | `@beava/client` | Re-exports `@beava/node` for app bundles that want a browser-scoped package name     |
+| `examples/node-basic.mjs` | example         | Connects to a running Beava server, registers an event, and pushes one row           |
 
 Workspace members are defined in **`pnpm-workspace.yaml`** (`packages/beava-node`, `packages/beava-client`). Library packages extend **`tsconfig.node-library.json`** at this directory root (no separate TypeScript config package).
 
@@ -41,7 +134,7 @@ pnpm exec turbo run lint check-types --filter=@beava/client
 
 **HTTP integration tests** (real `beava` subprocess, same idea as `python/tests/test_transport_http.py`) run when:
 
-1. The **`beava`** binary exists at **`target/debug/beava`** (repo root: run **`cargo build --bin beava`** from the Beava repo root), and  
+1. The **`beava`** binary exists at **`target/debug/beava`** (repo root: run **`cargo build --bin beava`** from the Beava repo root), and
 2. You set **`BEAVA_INTEGRATION=1`**. Optionally set **`BEAVA_REPO_ROOT`** to the Beava git root if discovery fails.
 
 ```sh
