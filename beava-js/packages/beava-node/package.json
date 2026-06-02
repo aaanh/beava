@@ -1,7 +1,7 @@
 {
-  "name": "@beava/node",
+  "name": "@beava/sdk",
   "version": "0.1.0",
-  "description": "Beava feature server HTTP client for Node.js (async fetch).",
+  "description": "Server-side TypeScript SDK for Beava feature servers.",
   "type": "module",
   "sideEffects": false,
   "engines": {
@@ -41,7 +41,7 @@
   "bugs": {
     "url": "https://github.com/beava-dev/beava/issues"
   },
-  "keywords": ["beava", "features", "fetch", "http", "real-time"],
+  "keywords": ["beava", "features", "server", "sdk", "http", "real-time"],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

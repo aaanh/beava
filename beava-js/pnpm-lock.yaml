@@ -18,34 +18,6 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
-  packages/beava-client:
-    dependencies:
-      '@beava/node':
-        specifier: workspace:^0.1.0
-        version: link:../beava-node
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.39.1
-        version: 9.39.1
-      '@types/node':
-        specifier: ^22.15.3
-        version: 22.15.3
-      eslint:
-        specifier: ^9.39.1
-        version: 9.39.1
-      eslint-config-prettier:
-        specifier: ^10.1.1
-        version: 10.1.1(eslint@9.39.1)
-      rimraf:
-        specifier: ^6.0.1
-        version: 6.1.3
-      typescript:
-        specifier: 5.9.2
-        version: 5.9.2
-      typescript-eslint:
-        specifier: ^8.49.0
-        version: 8.59.3(eslint@9.39.1)(typescript@5.9.2)
-
   packages/beava-node:
     dependencies:
       zod:

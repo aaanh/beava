@@ -1,18 +1,13 @@
 # beava-js
 
-[Turborepo](https://turbo.build/repo) workspace for the official Beava TypeScript HTTP clients.
+[Turborepo](https://turbo.build/repo) workspace for the official Beava server-side TypeScript SDK.
 
-- **`@beava/node`**: Node.js service and script client.
-- **`@beava/client`**: browser-oriented package name that re-exports the same fetch-based API.
-
-Both packages expose `createBeavaClient`, typed request and response shapes, Beava wire error classes, and Zod schemas for the HTTP data plane.
+`@beava/sdk` is the package users import from their server-side code. It exposes `createBeavaClient`, typed request and response shapes, Beava wire error classes, and Zod schemas for the HTTP data plane.
 
 ## Install
 
 ```sh
-npm install @beava/node
-# or, in browser bundles:
-npm install @beava/client
+pnpm add @beava/sdk
 ```
 
 Run a local server first:
@@ -25,7 +20,7 @@ beava
 ## Example
 
 ```ts
-import { BeavaError, createBeavaClient } from "@beava/node";
+import { BeavaError, createBeavaClient } from "@beava/sdk";
 
 const beava = createBeavaClient({
   baseUrl: "http://127.0.0.1:8080",
@@ -98,11 +93,10 @@ Server error envelopes throw `BeavaError`. Malformed success responses throw `Be
 
 | Path                      | Package         | Role                                                                                 |
 | ------------------------- | --------------- | ------------------------------------------------------------------------------------ |
-| `packages/beava-node`     | `@beava/node`   | `createBeavaClient`, Zod wire schemas, Vitest unit + optional HTTP integration tests |
-| `packages/beava-client`   | `@beava/client` | Re-exports `@beava/node` for app bundles that want a browser-scoped package name     |
-| `examples/node-basic.mjs` | example         | Connects to a running Beava server, registers an event, and pushes one row           |
+| `packages/beava-node`     | `@beava/sdk` | `createBeavaClient`, Zod wire schemas, Vitest unit + optional HTTP integration tests |
+| `examples/node-basic.mjs` | example      | Connects to a running Beava server, registers an event, and pushes one row           |
 
-Workspace members are defined in **`pnpm-workspace.yaml`** (`packages/beava-node`, `packages/beava-client`). Library packages extend **`tsconfig.node-library.json`** at this directory root (no separate TypeScript config package).
+Workspace members are defined in **`pnpm-workspace.yaml`** (`packages/beava-node`). The SDK extends **`tsconfig.node-library.json`** at this directory root (no separate TypeScript config package).
 
 ## Prerequisites
 
@@ -124,13 +118,12 @@ pnpm run test           # Vitest (see below)
 Scoped examples:
 
 ```sh
-pnpm exec turbo run build test --filter=@beava/node
-pnpm exec turbo run lint check-types --filter=@beava/client
+pnpm exec turbo run build test --filter=@beava/sdk
 ```
 
 ## Tests
 
-**`@beava/node`** uses [Vitest](https://vitest.dev/). Default **`pnpm run test`** runs **unit tests** only (mocked `fetch`).
+**`@beava/sdk`** uses [Vitest](https://vitest.dev/). Default **`pnpm run test`** runs **unit tests** only (mocked `fetch`).
 
 **HTTP integration tests** (real `beava` subprocess, same idea as `python/tests/test_transport_http.py`) run when:
 
@@ -139,7 +132,7 @@ pnpm exec turbo run lint check-types --filter=@beava/client
 
 ```sh
 # from beava-js/
-BEAVA_INTEGRATION=1 BEAVA_REPO_ROOT=/path/to/beava pnpm exec turbo run test --filter=@beava/node
+BEAVA_INTEGRATION=1 BEAVA_REPO_ROOT=/path/to/beava pnpm exec turbo run test --filter=@beava/sdk
 ```
 
 CI sets these when running the **`beava-js`** job in **`.github/workflows/ci.yml`**.
@@ -148,14 +141,13 @@ CI sets these when running the **`beava-js`** job in **`.github/workflows/ci.yml
 
 From the **Beava repo root**, **`bash .github/scripts/check.sh`** can run Rust, Python, and this tree together. **`bash .github/scripts/check.sh --js`** runs **`pnpm install`** and **`turbo run lint check-types test`** under **`beava-js/`** only. If **`target/debug/beava`** exists (from **`cargo build --bin beava`**), **`BEAVA_INTEGRATION=1`** is set so all Vitest tests run; otherwise three HTTP integration tests are skipped and the log notes why.
 
-## npm publish
+## Registry publish
 
-1. Bump **`version`** in **`packages/beava-node/package.json`** and **`packages/beava-client/package.json`**, and set **`@beava/client`** `dependencies["@beava/node"]` to **`workspace:^<newVersion>`** (same major/minor/patch as **`@beava/node`**). **`pnpm publish`** rewrites that to a normal **`^`** range on the tarball.
+1. Bump **`version`** in **`packages/beava-node/package.json`**.
 2. From **`beava-js/`**: **`pnpm install`**, **`pnpm run build`**, **`pnpm run test`** (with integration if you use **`BEAVA_INTEGRATION=1`**).
-3. **`pnpm publish --filter @beava/node --access public`** (uses **`prepack`** to run **`tsc`**; add **`--dry-run`** or **`pnpm pack --filter @beava/node`** to inspect the tarball).
-4. After **`@beava/node`** is on the registry, **`pnpm publish --filter @beava/client --access public`**.
+3. **`pnpm publish --filter @beava/sdk --access public`** (uses **`prepack`** to run **`tsc`**; add **`--dry-run`** or **`pnpm pack --filter @beava/sdk`** to inspect the tarball).
 
-Use **`npm whoami`** / **`npm login`** (or **`pnpm config set //registry.npmjs.org/:_authToken`**). Scoped **`@beava/*`** packages need **`publishConfig.access`** (already **`public`**).
+Use **`pnpm config set //registry.npmjs.org/:_authToken`** if you publish with an auth token. Scoped **`@beava/*`** packages need **`publishConfig.access`** (already **`public`**).
 
 ## Links
 

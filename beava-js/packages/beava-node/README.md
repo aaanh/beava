@@ -1,14 +1,13 @@
-# @beava/node
+# @beava/sdk
 
-TypeScript HTTP client for the [Beava](https://beava.dev) feature server data plane. It maps directly to the JSON routes exposed by a running `beava` server: `POST /ping`, `/register`, `/push`, `/get`, `/batch_get`, and `/reset`.
+Server-side TypeScript SDK for the [Beava](https://beava.dev) feature server data plane. It maps directly to the JSON routes exposed by a running `beava` server: `POST /ping`, `/register`, `/push`, `/get`, `/batch_get`, and `/reset`.
 
-The package is ESM-only, typed, and uses standard `fetch`. It works in Node.js 18.18+ and other runtimes with npm compatibility and global `fetch`.
+The package is ESM-only, typed, and uses standard `fetch`. Import it from server-side application code, services, jobs, and scripts that are allowed to reach your Beava endpoint.
 
 ## Install
 
 ```sh
-npm install @beava/node
-# or: pnpm add @beava/node
+pnpm add @beava/sdk
 ```
 
 Start a local Beava server before running client code:
@@ -21,7 +20,7 @@ beava
 ## Quickstart
 
 ```ts
-import { BeavaError, createBeavaClient } from "@beava/node";
+import { BeavaError, createBeavaClient } from "@beava/sdk";
 
 const beava = createBeavaClient({
   baseUrl: "http://127.0.0.1:8080",
@@ -122,10 +121,6 @@ try {
 
 Malformed success responses throw `BeavaResponseValidationError`. This usually means the client and server versions disagree about the wire shape.
 
-## Browser Apps
-
-Use [`@beava/client`](https://www.npmjs.com/package/@beava/client) in browser bundles if you prefer a browser-scoped package name. It re-exports this same fetch-based API.
-
 ## Development
 
 The source lives in the Beava monorepo under `beava-js/packages/beava-node`.
@@ -133,10 +128,10 @@ The source lives in the Beava monorepo under `beava-js/packages/beava-node`.
 ```sh
 cd beava-js
 pnpm install
-pnpm exec turbo run lint check-types test --filter=@beava/node
+pnpm exec turbo run lint check-types test --filter=@beava/sdk
 ```
 
-See the [beava-js README](https://github.com/beava-dev/beava/tree/main/beava-js) for workspace commands, integration tests, and npm publish steps.
+See the [beava-js README](https://github.com/beava-dev/beava/tree/main/beava-js) for workspace commands, integration tests, and registry publish steps.
 
 ## License
 
