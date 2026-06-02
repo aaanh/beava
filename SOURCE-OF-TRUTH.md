@@ -8,7 +8,7 @@ left column wins; the right column is downstream and must be regenerated.
 | Domain | Canonical source | Downstream |
 |--------|-----------------|------------|
 | Python SDK API | `python/beava/__init__.py` (`__all__`) + `python/beava/_*.py` | `beava-website/project/sdk/python/*/index.html` |
-| TypeScript / npm HTTP SDK (`@beava/node`, `@beava/client`) | `beava-js/packages/beava-node/src/*.ts` + `wire-schemas.ts` | npm package READMEs; wire parity with Python `HttpTransport` |
+| TypeScript / npm HTTP SDK (`@beava/sdk`) | `beava-js/packages/beava-node/src/*.ts` + `wire-schemas.ts` | npm package README; wire parity with Python `HttpTransport` |
 | Server CLI flags | `crates/beava-server/src/cli.rs` | `beava-website/project/sdk/server/index.html` |
 | Server config (env vars, YAML) | `crates/beava-server/src/{config,wal_config,main}.rs` + `beava.example.yaml` | `beava-website/project/sdk/server/index.html` |
 | Wire format (TCP frames + opcodes) | `crates/beava-core/src/wire.rs` | `beava-website/project/sdk/http/wire-spec/index.html` |
