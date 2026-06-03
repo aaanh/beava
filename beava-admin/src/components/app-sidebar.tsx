@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { InstanceHeader } from "@/components/instance-header"
 import { NavMain } from "@/components/nav-main"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -62,7 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={navItems} />
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter>
+        <ThemeSwitcher />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

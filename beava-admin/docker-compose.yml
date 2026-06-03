@@ -1,0 +1,16 @@
+name: beava-admin
+
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beava-admin-ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      BEAVA_ADMIN_UPSTREAM: http://host.docker.internal:8090
+      BEAVA_DATA_UPSTREAM: http://host.docker.internal:8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,28 @@
+# Internal caddy — serves the beava-admin SPA and proxies /api/admin and
+# /api/data to the beava sidecars (same paths as the Vite dev proxy).
+
+:8080 {
+	encode zstd gzip
+
+	handle /api/admin/* {
+		uri strip_prefix /api/admin
+		reverse_proxy {$BEAVA_ADMIN_UPSTREAM}
+	}
+
+	handle /api/data/* {
+		uri strip_prefix /api/data
+		reverse_proxy {$BEAVA_DATA_UPSTREAM}
+	}
+
+	handle {
+		root * /srv
+		try_files {path} {path}/ /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
