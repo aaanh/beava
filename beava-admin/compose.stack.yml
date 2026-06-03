@@ -1,10 +1,9 @@
 name: beava-admin
 
-# Full stack: beava + admin UI on one Docker network. Best for remote hosts
-# and Cloudflare tunnel — no host.docker.internal hop.
+# beava + admin UI. Use this on a server with a Cloudflare tunnel.
 #
 #   docker compose -f compose.stack.yml up -d --build
-# Point the tunnel at http://127.0.0.1:3000
+# Tunnel ingress → http://127.0.0.1:3000
 
 services:
   beava:
