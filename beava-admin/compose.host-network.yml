@@ -1,0 +1,19 @@
+name: beava-admin
+
+# Linux / Cloudflare tunnel: admin container shares the host network so Caddy
+# can proxy to beava on 127.0.0.1. Point the tunnel at http://127.0.0.1:3000.
+#
+#   docker compose -f compose.host-network.yml up -d --build
+
+services:
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beava-admin-ui
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      ADMIN_LISTEN: ":3000"
+      BEAVA_ADMIN_UPSTREAM: http://127.0.0.1:8090
+      BEAVA_DATA_UPSTREAM: http://127.0.0.1:8080

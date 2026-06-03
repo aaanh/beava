@@ -35,17 +35,43 @@ Other scripts: `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm format`.
 
 Minimal multi-stage image: Node builds the static bundle, Caddy serves it and proxies API routes.
 
-Start beava on the host first (data plane `:8080`, admin sidecar `:8090`), then run the UI container:
+## Compose layouts
+
+| File | When to use |
+|------|-------------|
+| `docker-compose.yml` | beava on the host, bound to `0.0.0.0` |
+| `compose.host-network.yml` | Linux + Cloudflare tunnel, beava on `127.0.0.1` |
+| `compose.stack.yml` | beava and admin both in Docker |
 
 ```bash
 cd beava-admin
+
+# beava running natively on the host (must listen on 0.0.0.0, not 127.0.0.1)
 docker compose up -d --build
-# open http://127.0.0.1:3000
+
+# Linux: beava on 127.0.0.1, tunnel on the same box
+docker compose -f compose.host-network.yml up -d --build
+
+# everything in Docker
+docker compose -f compose.stack.yml up -d --build
 ```
 
-Compose runs **beava-admin only**. Caddy proxies `/api/admin` and `/api/data` to `host.docker.internal` so the container can reach beava on your machine.
+Open `http://127.0.0.1:3000` (or point a Cloudflare tunnel at that URL).
 
-Override upstreams when beava listens elsewhere:
+## Why 502 Bad Gateway?
+
+The SPA shell loads from Caddy, but `/api/admin` and `/api/data` are reverse-proxied to beava. A 502 means Caddy could not reach those upstreams.
+
+**Default `docker-compose.yml` uses `host.docker.internal`.** Traffic from the container hits the host's network stack, not loopback. If beava binds `127.0.0.1:8080` / `127.0.0.1:8090` (the default in `beava.example.yaml`), the connection is refused.
+
+Fix one of:
+
+1. Bind beava on all interfaces: `listen_addr: "0.0.0.0:8080"` and `admin_addr: "0.0.0.0:8090"`
+2. Use `compose.host-network.yml` so Caddy proxies to `127.0.0.1` directly
+3. Use `compose.stack.yml` and proxy to the `beava` service on the Docker network
+
+Caddy upstream env vars (see `.env.example`):
 
 - `BEAVA_ADMIN_UPSTREAM` (default `http://host.docker.internal:8090`)
 - `BEAVA_DATA_UPSTREAM` (default `http://host.docker.internal:8080`)
+- `ADMIN_LISTEN` (default `:8080`, use `:3000` with host networking)

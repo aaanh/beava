@@ -17,7 +17,8 @@ FROM caddy:2-alpine
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=builder /app/dist /srv
 
-ENV BEAVA_ADMIN_UPSTREAM=http://host.docker.internal:8090 \
+ENV ADMIN_LISTEN=:8080 \
+    BEAVA_ADMIN_UPSTREAM=http://host.docker.internal:8090 \
     BEAVA_DATA_UPSTREAM=http://host.docker.internal:8080
 
 EXPOSE 8080
