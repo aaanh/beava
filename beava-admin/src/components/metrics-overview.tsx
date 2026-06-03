@@ -13,7 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import type { MetricsSnapshot } from "@/hooks/use-metrics"
 import { useMetrics } from "@/hooks/use-metrics"
-import type { RssMemoryEstimate } from "@/lib/memory-profile"
+import { rssCompositionHints } from "@/lib/memory-profile"
 import {
   formatBytes,
   formatCounterRate,
@@ -43,21 +43,9 @@ function MetricsSkeleton() {
   )
 }
 
-function rssProfilerHint(rss: RssMemoryEstimate): string {
-  if (rss.source === "pid") {
-    return "process RSS via BEAVA_MEMORY_PID (local ps)"
-  }
-  if (rss.source === "docker-exec") {
-    return rss.detail ?? "beava process RSS inside container (docker exec ps)"
-  }
-  if (rss.source === "docker-stats") {
-    return rss.detail ?? "docker stats fallback (whole container)"
-  }
-  return rss.detail ?? "profiler unavailable"
-}
-
 function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
   const { metrics, rates, rss } = snapshot
+  const rssHints = rssCompositionHints(rss)
 
   return (
     <div className="space-y-6">
@@ -73,7 +61,7 @@ function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
               ? "—"
               : formatBytes(rss.processResidentBytes)
           }
-          hint={rssProfilerHint(rss)}
+          hint={rssHints.processRss}
         />
         <StatCard
           label="RSS / resident entity"
@@ -82,7 +70,7 @@ function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
               ? "—"
               : formatBytes(rss.bytesPerEntityRss)
           }
-          hint="process RSS ÷ entity count; includes WAL, threads, and overhead"
+          hint={rssHints.perEntity}
         />
         <StatCard
           label="Static budget estimate"
@@ -91,7 +79,7 @@ function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
               ? "—"
               : formatBytes(rss.staticBudgetTotalBytes)
           }
-          hint="entity count × beava_bytes_per_entity_p99 (7000 B placeholder)"
+          hint={rssHints.staticBudget}
         />
         <StatCard
           label="Registry version"
