@@ -20,6 +20,7 @@ WORKDIR /app
 
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY deploy/entrypoint.sh /entrypoint.sh
+COPY deploy/supervisor.mjs /app/deploy/supervisor.mjs
 COPY server/memory-profile.mjs /app/server/memory-profile.mjs
 COPY --from=builder /app/dist /srv
 

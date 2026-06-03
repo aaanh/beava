@@ -7,7 +7,8 @@
 import http from "node:http"
 import { execFileSync } from "node:child_process"
 import { existsSync } from "node:fs"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
+import { resolve } from "node:path"
 
 const LISTEN_HOST = process.env.BEAVA_MEMORY_PROFILE_HOST ?? "127.0.0.1"
 const LISTEN_PORT = Number(process.env.BEAVA_MEMORY_PROFILE_PORT ?? "8091")
@@ -16,14 +17,25 @@ const CONTAINER = process.env.BEAVA_CONTAINER_NAME?.trim()
 const PROCESS_NAME = safeProcessName(
   process.env.BEAVA_PROCESS_NAME?.trim() || "beava"
 )
-const DOCKER_SOCK = process.env.DOCKER_HOST ?? "/var/run/docker.sock"
+const DOCKER_SOCK = process.env.BEAVA_DOCKER_SOCK ?? "/var/run/docker.sock"
 
 function safeProcessName(name) {
   return /^[a-zA-Z0-9_-]+$/.test(name) ? name : "beava"
 }
 
 function dockerEnv() {
-  return { ...process.env, DOCKER_HOST: DOCKER_SOCK }
+  const env = { ...process.env }
+  if (existsSync(DOCKER_SOCK)) {
+    env.DOCKER_HOST = `unix://${DOCKER_SOCK}`
+  }
+  return env
+}
+
+function dockerCommand(args) {
+  return execFileSync("docker", args, {
+    encoding: "utf8",
+    env: dockerEnv(),
+  }).trim()
 }
 
 function parseDockerMemUsage(raw) {
@@ -63,28 +75,22 @@ function rssFromPid(pid) {
 }
 
 function dockerExec(container, args) {
-  return execFileSync("docker", ["exec", container, ...args], {
-    encoding: "utf8",
-    env: dockerEnv(),
-  }).trim()
+  return dockerCommand(["exec", container, ...args])
 }
 
 function dockerShell(container, script) {
-  return execFileSync("docker", ["exec", container, "sh", "-c", script], {
-    encoding: "utf8",
-    env: dockerEnv(),
-  }).trim()
+  return dockerCommand(["exec", container, "sh", "-c", script])
 }
 
 /** Host PID of the container's init process (Linux: maps to in-container PID 1). */
 function containerInitHostPid(container) {
-  const raw = execFileSync(
-    "docker",
-    ["inspect", "-f", "{{.State.Pid}}", container],
-    { encoding: "utf8", env: dockerEnv() }
-  ).trim()
-  const pid = Number(raw)
-  return Number.isFinite(pid) && pid > 0 ? String(pid) : undefined
+  try {
+    const raw = dockerCommand(["inspect", "-f", "{{.State.Pid}}", container])
+    const pid = Number(raw)
+    return Number.isFinite(pid) && pid > 0 ? String(pid) : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -119,6 +125,24 @@ function findBeavaPidInContainer(container) {
   return "1"
 }
 
+function rssKbFromProcStatus(container, pid) {
+  try {
+    const status = dockerCommand([
+      "exec",
+      container,
+      "cat",
+      `/proc/${pid}/status`,
+    ])
+    const match = status.match(/^VmRSS:\s*(\d+)\s*kB/im)
+    if (match) {
+      return Number(match[1])
+    }
+  } catch {
+    // ignore
+  }
+  return undefined
+}
+
 /** ps RSS inside the container for the beava process (KiB → bytes). */
 function rssFromDockerExec(container) {
   if (!existsSync(DOCKER_SOCK)) {
@@ -131,10 +155,14 @@ function rssFromDockerExec(container) {
     const raw = dockerExec(container, ["ps", "-o", "rss=", "-p", pid])
     rssKb = Number(raw)
   } catch {
-    return undefined
+    rssKb = rssKbFromProcStatus(container, pid)
   }
 
   if (!Number.isFinite(rssKb) || rssKb <= 0) {
+    rssKb = rssKbFromProcStatus(container, pid)
+  }
+
+  if (rssKb === undefined || !Number.isFinite(rssKb) || rssKb <= 0) {
     return undefined
   }
 
@@ -164,13 +192,19 @@ function rssFromDockerStats(container) {
   if (!existsSync(DOCKER_SOCK)) {
     return undefined
   }
-  const raw = execFileSync(
-    "docker",
-    ["stats", container, "--no-stream", "--format", "{{.MemUsage}}"],
-    { encoding: "utf8", env: dockerEnv() }
-  )
-  const bytes = parseDockerMemUsage(raw)
-  return bytes === undefined ? undefined : { bytes }
+  try {
+    const raw = dockerCommand([
+      "stats",
+      container,
+      "--no-stream",
+      "--format",
+      "{{.MemUsage}}",
+    ])
+    const bytes = parseDockerMemUsage(raw)
+    return bytes === undefined ? undefined : { bytes }
+  } catch {
+    return undefined
+  }
 }
 
 export function sampleProcessMemory() {
@@ -242,13 +276,23 @@ function createServer() {
       sendJson(res, 404, { error: "not_found" })
       return
     }
-    sendJson(res, 200, sampleProcessMemory())
+    let body
+    try {
+      body = sampleProcessMemory()
+    } catch (error) {
+      body = {
+        source: "unavailable",
+        detail: error instanceof Error ? error.message : "sample failed",
+      }
+    }
+    sendJson(res, 200, body)
   })
 }
 
 const isMain =
   process.argv[1] !== undefined &&
-  fileURLToPath(import.meta.url) === fileURLToPath(process.argv[1])
+  fileURLToPath(import.meta.url) ===
+    fileURLToPath(pathToFileURL(resolve(process.argv[1])))
 
 if (isMain) {
   createServer().listen(LISTEN_PORT, LISTEN_HOST, () => {
