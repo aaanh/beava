@@ -5,7 +5,7 @@ export default function MetricsPage() {
   return (
     <PageShell
       title="Metrics"
-      description="Prometheus exposition from admin /metrics. Counter rates use deltas between polls."
+      description="Admin /metrics plus an RSS memory profiler (admin-side only). Counter rates use poll deltas."
     >
       <MetricsOverview />
     </PageShell>

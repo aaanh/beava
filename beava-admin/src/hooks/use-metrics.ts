@@ -9,6 +9,11 @@ import {
   type BeavaMetrics,
 } from "@/lib/beava-metrics"
 import { getMetricsText } from "@/lib/admin-api"
+import {
+  buildRssMemoryEstimate,
+  fetchMemoryProfile,
+  type RssMemoryEstimate,
+} from "@/lib/memory-profile"
 import { postPing } from "@/lib/data-api"
 import { fetchRegistryOverview } from "@/lib/registry-overview"
 import { parsePrometheusText } from "@/lib/parse-prometheus"
@@ -19,6 +24,7 @@ export type CounterRates = Partial<Record<BeavaCounterMetric, number>>
 export type MetricsSnapshot = {
   metrics: BeavaMetrics
   rates: CounterRates
+  rss: RssMemoryEstimate
   rawText: string
   prometheusRows: ReturnType<typeof samplesToRows>
   nodeCount: number
@@ -98,20 +104,38 @@ function normalizeMetrics(
   return next
 }
 
+async function fetchMemoryProfileSafe() {
+  try {
+    return await fetchMemoryProfile()
+  } catch {
+    return {
+      source: "unavailable" as const,
+      detail:
+        "Start server/memory-profile.mjs (see .env.example) or use compose with docker.sock.",
+    }
+  }
+}
+
 async function fetchMetricsSnapshot(
   previous: BeavaMetrics | undefined,
   previousAt: number | undefined
 ): Promise<MetricsSnapshot> {
-  const [rawText, ping, registry] = await Promise.all([
+  const [rawText, ping, registry, memoryProfile] = await Promise.all([
     getMetricsText(),
     postPing(),
     fetchRegistryOverview(),
+    fetchMemoryProfileSafe(),
   ])
   const samples = parsePrometheusText(rawText)
   const metrics = normalizeMetrics(
     extractBeavaMetrics(samples),
     ping.registry_version,
     registry.node_count
+  )
+  const rss = buildRssMemoryEstimate(
+    memoryProfile,
+    metrics.entityCountResident,
+    metrics.bytesPerEntityP99
   )
 
   const now = Date.now()
@@ -123,6 +147,7 @@ async function fetchMetricsSnapshot(
   return {
     metrics,
     rates,
+    rss,
     rawText,
     prometheusRows,
     nodeCount: registry.node_count,

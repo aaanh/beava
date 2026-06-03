@@ -21,6 +21,9 @@ services:
     environment:
       BEAVA_ADMIN_UPSTREAM: http://beava:8090
       BEAVA_DATA_UPSTREAM: http://beava:8080
+      BEAVA_CONTAINER_NAME: beava-admin-beava
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - beava
 

@@ -13,7 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import type { MetricsSnapshot } from "@/hooks/use-metrics"
 import { useMetrics } from "@/hooks/use-metrics"
-import { estimatedResidentBytes } from "@/lib/beava-metrics"
+import type { RssMemoryEstimate } from "@/lib/memory-profile"
 import {
   formatBytes,
   formatCounterRate,
@@ -34,7 +34,7 @@ function MetricsSkeleton() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, index) => (
+        {Array.from({ length: 10 }).map((_, index) => (
           <Skeleton key={index} className="h-20 w-full" />
         ))}
       </div>
@@ -43,9 +43,18 @@ function MetricsSkeleton() {
   )
 }
 
+function rssProfilerHint(rss: RssMemoryEstimate): string {
+  if (rss.source === "pid") {
+    return "process RSS via BEAVA_MEMORY_PID (local ps)"
+  }
+  if (rss.source === "docker") {
+    return "container memory via docker stats (approx RSS)"
+  }
+  return rss.detail ?? "profiler unavailable"
+}
+
 function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
-  const { metrics, rates } = snapshot
-  const residentBytes = estimatedResidentBytes(metrics)
+  const { metrics, rates, rss } = snapshot
 
   return (
     <div className="space-y-6">
@@ -55,11 +64,31 @@ function MetricsBody({ snapshot }: { snapshot: MetricsSnapshot }) {
           value={formatMetricTotal(metrics.entityCountResident)}
         />
         <StatCard
-          label="Est. resident memory"
+          label="Process RSS (profiler)"
           value={
-            residentBytes === undefined ? "—" : formatBytes(residentBytes)
+            rss.processResidentBytes === undefined
+              ? "—"
+              : formatBytes(rss.processResidentBytes)
           }
-          hint="entity count × 7 KiB placeholder"
+          hint={rssProfilerHint(rss)}
+        />
+        <StatCard
+          label="RSS / resident entity"
+          value={
+            rss.bytesPerEntityRss === undefined
+              ? "—"
+              : formatBytes(rss.bytesPerEntityRss)
+          }
+          hint="process RSS ÷ entity count; includes WAL, threads, and overhead"
+        />
+        <StatCard
+          label="Static budget estimate"
+          value={
+            rss.staticBudgetTotalBytes === undefined
+              ? "—"
+              : formatBytes(rss.staticBudgetTotalBytes)
+          }
+          hint="entity count × beava_bytes_per_entity_p99 (7000 B placeholder)"
         />
         <StatCard
           label="Registry version"
@@ -158,8 +187,9 @@ function MetricsOverviewCard({
       <CardHeader>
         <CardTitle className="sr-only">Server metrics</CardTitle>
         <CardDescription>
-          Process gauges from admin /metrics. Counter rates need two polls (~5s
-          apart) while the server is under load.
+          Process gauges from admin /metrics plus an admin-side RSS profiler
+          (not beava-server). Counter rates need two polls (~5s apart) under
+          load.
         </CardDescription>
         <CardAction>
           <PollingStatusBadge resource={resource} />
