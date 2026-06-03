@@ -14,11 +14,18 @@ export default defineConfig(({ mode }) => {
     env.VITE_BEAVA_DATA_PROXY_TARGET ??
     env.VITE_BEAVA_DATA_URL ??
     "http://127.0.0.1:8080"
+  const memoryProfileTarget =
+    env.VITE_BEAVA_MEMORY_PROFILE_TARGET ?? "http://127.0.0.1:8091"
 
   return {
     plugins: [react(), tailwindcss()],
     server: {
       proxy: {
+        "/api/admin/memory-profile": {
+          target: memoryProfileTarget,
+          changeOrigin: true,
+          rewrite: () => "/memory-profile",
+        },
         "/api/admin": {
           target: adminTarget,
           changeOrigin: true,

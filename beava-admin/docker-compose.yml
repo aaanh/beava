@@ -1,16 +1,15 @@
 name: beava-admin
 
-# Admin UI only. Caddy proxies /api/* to beava on the host via
-# host.docker.internal — beava must bind 0.0.0.0:8080 and 0.0.0.0:8090.
-#
-# Cloudflare tunnel on the same host? Prefer compose.host-network.yml
-# (beava on 127.0.0.1 works) or compose.stack.yml (beava in Docker).
-#
-#   docker compose up -d --build
-#   docker compose -f compose.host-network.yml up -d --build
-#   docker compose -f compose.stack.yml up -d --build
-
 services:
+  beava:
+    image: beavadev/beava:latest
+    pull_policy: always
+    container_name: beava-admin-beava
+    restart: unless-stopped
+    volumes:
+      - ./deploy/beava.yaml:/app/beava.yaml:ro
+      - beava-state:/data
+
   admin:
     build:
       context: .
@@ -20,7 +19,13 @@ services:
     ports:
       - "127.0.0.1:3000:8080"
     environment:
-      BEAVA_ADMIN_UPSTREAM: http://host.docker.internal:8090
-      BEAVA_DATA_UPSTREAM: http://host.docker.internal:8080
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      BEAVA_ADMIN_UPSTREAM: http://beava:8090
+      BEAVA_DATA_UPSTREAM: http://beava:8080
+      BEAVA_CONTAINER_NAME: beava-admin-beava
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - beava
+
+volumes:
+  beava-state:

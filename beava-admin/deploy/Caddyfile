@@ -4,6 +4,15 @@
 {$ADMIN_LISTEN} {
 	encode zstd gzip
 
+	handle /api/admin/memory-profile {
+		rewrite * /memory-profile
+		reverse_proxy 127.0.0.1:8091 {
+			transport http {
+				dial_timeout 2s
+			}
+		}
+	}
+
 	handle_path /api/admin/* {
 		reverse_proxy {$BEAVA_ADMIN_UPSTREAM} {
 			transport http {
