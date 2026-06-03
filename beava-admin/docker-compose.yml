@@ -1,11 +1,15 @@
 name: beava-admin
 
-# Admin UI only — beava running via root README docker run, ports remapped to
-# host :8081 (HTTP data) and :8082 (admin sidecar).
-#
-#   docker compose up -d --build
-
 services:
+  beava:
+    image: beavadev/beava:latest
+    pull_policy: always
+    container_name: beava-admin-beava
+    restart: unless-stopped
+    volumes:
+      - ./deploy/beava.yaml:/app/beava.yaml:ro
+      - beava-state:/data
+
   admin:
     build:
       context: .
@@ -15,7 +19,10 @@ services:
     ports:
       - "127.0.0.1:3000:8080"
     environment:
-      BEAVA_ADMIN_UPSTREAM: http://host.docker.internal:8082
-      BEAVA_DATA_UPSTREAM: http://host.docker.internal:8081
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      BEAVA_ADMIN_UPSTREAM: http://beava:8090
+      BEAVA_DATA_UPSTREAM: http://beava:8080
+    depends_on:
+      - beava
+
+volumes:
+  beava-state:
