@@ -47,8 +47,11 @@ function rssProfilerHint(rss: RssMemoryEstimate): string {
   if (rss.source === "pid") {
     return "process RSS via BEAVA_MEMORY_PID (local ps)"
   }
-  if (rss.source === "docker") {
-    return "container memory via docker stats (approx RSS)"
+  if (rss.source === "docker-exec") {
+    return rss.detail ?? "beava process RSS inside container (docker exec ps)"
+  }
+  if (rss.source === "docker-stats") {
+    return rss.detail ?? "docker stats fallback (whole container)"
   }
   return rss.detail ?? "profiler unavailable"
 }

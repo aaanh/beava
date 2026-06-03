@@ -1,6 +1,10 @@
 import { beavaConfig } from "@/lib/config"
 
-export type MemoryProfileSource = "pid" | "docker" | "unavailable"
+export type MemoryProfileSource =
+  | "pid"
+  | "docker-exec"
+  | "docker-stats"
+  | "unavailable"
 
 export type MemoryProfileResponse = {
   processResidentBytes?: number
